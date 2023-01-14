@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <style>
+        .test {
+            float: left;text-align: center;
+        }
+    </style>
+    {% set w = 100 %}
+    {% for stage in tree %}
+        {% for value in stage %}
+            <div class="test" style="width: {{ w }}%">
+                {{ value }}
+            </div>
+        {% endfor %}
+        {% set w = w / 2 %}
+    {% endfor %}
+{% endblock %}
