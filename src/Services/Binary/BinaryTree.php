@@ -2,6 +2,8 @@
 
 namespace App\Services\Binary;
 
+use Symfony\Component\Config\Definition\Exception\Exception;
+
 class BinaryTree
 {
     /**
@@ -21,12 +23,23 @@ class BinaryTree
 
     /**
      * Вставка в дерево
-     * @param $value
+     * @param int $value
+     * @param mixed|null $data
      */
-    public function insert($value)
+    public function insert(int $value, mixed $data = null)
     {
-        $node = new BinaryNode($value);
+        $node = new BinaryNode($value, $data);
         $this->insertNode($node, $this->root);
+    }
+
+    /**
+     * Данные выводимые из узла
+     * @param BinaryNode $root
+     * @return mixed
+     */
+    protected function showNode(BinaryNode $root): mixed
+    {
+        return $root->value;
     }
 
     /**
@@ -39,7 +52,7 @@ class BinaryTree
         if (!$root) {
             return null;
         }
-        $array = [$root->value->getId()];
+        $array = [$this->showNode($root)];
         return array_merge($array, [$this->show($root->left)], [$this->show($root->right)]);
     }
 
@@ -53,9 +66,10 @@ class BinaryTree
     public function showByStage(?BinaryNode $root, int $deep = 0, array &$array = []): ?array
     {
         if (!$root) {
-            return [];
+            $array[$deep][] = 'null';
+            return $array;
         }
-        $array[$deep][] = $root->value->getId() . 'Key';
+        $array[$deep][] = $this->showNode($root);
         $deep++;
         $this->showByStage($root->left, $deep, $array);
         $this->showByStage($root->right, $deep, $array);
@@ -66,20 +80,23 @@ class BinaryTree
      * Процесс вставки в дерево
      * @param BinaryNode $node
      * @param BinaryNode|null $subtree
+     * @param BinaryNode|null $parent
      * @return $this
      */
-    protected function insertNode(BinaryNode $node, ?BinaryNode &$subtree): static
+    protected function insertNode(BinaryNode $node, ?BinaryNode &$subtree, ?BinaryNode &$parent = null): static
     {
         if (is_null($subtree)) {
             $subtree = $node;
             if (!$this->root) {
                 $this->root = $node;
+            } else {
+                $subtree->parent = $parent;
             }
         } else {
             if ($node->value < $subtree->value) {
-                $this->insertNode($node, $subtree->left);
+                $this->insertNode($node, $subtree->left, $subtree);
             } elseif ($node->value > $subtree->value) {
-                $this->insertNode($node, $subtree->right);
+                $this->insertNode($node, $subtree->right, $subtree);
             }
             if ($node->parent == null) {
                 $node->parent = $subtree;
@@ -102,7 +119,6 @@ class BinaryTree
             if ($node->right && $this->bfactor($node->right) < 0) {
                 $node->right = $this->rotateRight($node->right);
             }
-
             return $this->rotateLeft($node);
         }
         if ($this->bfactor($node) == -2) {
@@ -124,8 +140,19 @@ class BinaryTree
         $parent = $node->left;
         if ($node == $this->root) {
             $this->root = $parent;
+        } else {
+            $parent->parent = $node->parent;
+            if ($node->parent->right === $node) {
+                $node->parent->right = $parent;
+            } else {
+                $node->parent->left = $parent;
+            }
         }
         $node->left = $parent->right;
+        if ($parent->right) {
+            $parent->right->parent = $node;
+        }
+        $node->parent = $parent;
         $parent->right = $node;
         $node->setHeight();
         $parent->setHeight();
@@ -142,6 +169,7 @@ class BinaryTree
         $parent = $node->right;
         if ($node === $this->root) {
             $this->root = $parent;
+            $parent->parent = null;
         } else {
             $parent->parent = $node->parent;
             if ($node->parent->right === $node) {
@@ -151,6 +179,9 @@ class BinaryTree
             }
         }
         $node->right = $parent->left;
+        if($parent->left) {
+            $parent->left->parent = $node;
+        }
         $node->parent = $parent;
         $parent->left = $node;
         $node->setHeight();
@@ -179,19 +210,68 @@ class BinaryTree
      * @param BinaryNode $tree
      * @return bool|BinaryNode
      */
-    public function findNode(int $value, BinaryNode $tree): bool|BinaryNode
+    protected function findNode(int $value, BinaryNode $tree): bool|BinaryNode
     {
         if (is_null($tree)) {
             return false;
         }
 
-        if ($tree->value->getId() > $value) {
+        if ($tree->value > $value) {
             return $this->findNode($value, $tree->left);
-        } elseif ($tree->value->getId() < $value) {
+        } elseif ($tree->value < $value) {
             return $this->findNode($value, $tree->right);
         } else {
             return $tree;
         }
+    }
+
+    protected function updateParent(BinaryNode &$node, BinaryNode $newChild = null) {
+        $parent = $node->parent;
+        if (!$parent) {
+            return;
+        }
+        if ($parent->left === $node) {
+            $parent->left = $newChild;
+        } else {
+            $parent->right = $newChild;
+        }
+    }
+
+    protected function deleteNode(BinaryNode &$node)
+    {
+        if (is_null($node->left) && is_null($node->right)) {
+            $this->updateParent($node);
+            $node = NULL;
+        } elseif (is_null($node->left)) {
+            $this->updateParent($node, $node->right);
+            $node = $node->right;
+        } elseif (is_null($node->right)) {
+            $this->updateParent($node, $node->right);
+            $node = $node->left;
+        } else {
+            if (is_null($node->right->left)) {
+                $node->right->left = $node->left;
+                $this->updateParent($node, $node->right);
+                $node = $node->right;
+            } else {
+                $node->value = $node->right->left->value;
+                $node->data = $node->right->left->data;
+                $this->deleteNode($node->right->left);
+            }
+        }
+    }
+
+    public function delete($value): static
+    {
+        if ($this->isEmpty()) {
+            throw new Exception('Tree is empty!');
+        }
+        $node = $this->findNode($value, $this->root);
+//        dd($node);
+        if ($node) {
+            $this->deleteNode($node);
+        }
+        return $this;
     }
 
 }

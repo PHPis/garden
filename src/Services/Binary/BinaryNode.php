@@ -12,7 +12,13 @@ class BinaryNode
      * Значение в узле
      * @var mixed
      */
-    public mixed $value;
+    public int $value;
+
+    /**
+     * Данные в узле
+     * @var mixed
+     */
+    public mixed $data;
 
     /**
      * Левый потомок
@@ -38,9 +44,10 @@ class BinaryNode
      */
     public int $height = 1;
 
-    public function __construct($value)
+    public function __construct(int $key, mixed $data = null)
     {
-        $this->value = $value;
+        $this->value = $key;
+        $this->data = $data;
     }
 
     /**
