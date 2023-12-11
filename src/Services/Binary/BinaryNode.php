@@ -50,6 +50,18 @@ class BinaryNode
         $this->data = $data;
     }
 
+    public function sum()
+    {
+        $sum = $this->value;
+        if ($this->left) {
+            $sum += $this->left->sum();
+        }
+        if ($this->right) {
+            $sum += $this->right->sum();
+        }
+        return $sum;
+    }
+
     /**
      * Пересчёт высоты узла
      * @return int

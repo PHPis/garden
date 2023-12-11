@@ -76,6 +76,16 @@ class BinaryTree
         return $array;
     }
 
+    public function searchMaxBranch(int $value, BinaryNode $binaryNode): string
+    {
+        $node = $this->findNode($value, $binaryNode);
+
+        $right = $node->right->sum();
+        $left = $node->left->sum();
+        return $right > $left ? 'Right, summ = ' . $right : 'Left, summ =' . $left;
+    }
+
+
     /**
      * Процесс вставки в дерево
      * @param BinaryNode $node

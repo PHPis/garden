@@ -12,9 +12,21 @@
     {% for stage in tree %}
         {% for value in stage %}
             <div class="test" style="width: {{ w }}%">
+
+                {% if highlight is defined %}
+                    {% if highlight ==  value%}
+                        This is search:
+                    {% endif %}
+                {% endif %}
                 {{ value }}
             </div>
         {% endfor %}
         {% set w = w / 2 %}
     {% endfor %}
+    <br>
+    <div style="width: 100%; float: left;">
+        {% if message is defined %}
+            {{ message }}
+        {% endif %}
+    </div>
 {% endblock %}

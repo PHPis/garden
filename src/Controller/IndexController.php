@@ -8,6 +8,7 @@ use App\Services\UserBinaryTree;
 use App\Services\UserService;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -59,6 +60,30 @@ class IndexController extends AbstractController
 
         return $this->render('index.html.twig', [
             'tree' => $binaryTree->showByStage($binaryTree->root)
+        ]);
+    }
+
+    #[Route('maxbranch')]
+    public function getMaxBranch(Request $request, UserService $userService, BinaryTree $binaryTree): Response
+    {
+        $search = $request->get('search');
+        $users = $userService->getAll();
+
+        /** @var User $user */
+        foreach ($users as $user) {
+            $binaryTree->insert($user->getId(), $user);
+        }
+        // For testing delete function
+        $binaryTree = $binaryTree->delete(12);
+        $binaryTree = $binaryTree->delete(13);
+        //
+
+        $maxBranch = $binaryTree->searchMaxBranch($search, $binaryTree->root);
+
+        return $this->render('index.html.twig', [
+            'tree' => $binaryTree->showByStage($binaryTree->root),
+            'message' => $maxBranch,
+            'highlight' => $search
         ]);
     }
 }
